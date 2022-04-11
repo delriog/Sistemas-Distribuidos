@@ -21,6 +21,7 @@
 # echo-client.py
 import socket
 from sqlite3 import connect 
+import hashlib
 
 # IP da máquina conectada, por padrão 127.0.0.1
 ip = "127.0.0.1"
@@ -41,6 +42,16 @@ def main():
 
     while True:
         comando = input("Comando: ") 
+        comando = comando.split()
+        if comando[0] == 'CONNECT':
+            
+            # Divide o login e a senha
+            senha = comando[1].split(',')
+
+            # Criptografa a senha em SHA512 e junta novamente a string
+            hash = hashlib.sha512( str( senha[1] ).encode("utf-8") ).hexdigest()
+            comando = 'CONNECT ' + senha[0] + ',' + hash
+
         # Envia mensagem
         client_socket.send(comando.encode("utf-8"))
         resposta = client_socket.recv(1024).decode("utf-8")
