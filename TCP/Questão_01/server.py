@@ -14,20 +14,23 @@
 
     Autores: Caio José Cintra, Guilherme Del Rio
     Data de criação: 04/04/2022
-    Data de modificação: 05/04/2022
+    Data de modificação: 11/04/2022
 
 '''
 
 import threading 
 import socket 
 import os
+import hashlib
 
 host = ""
 porta = 65432
 addr = (host,porta) 
 
-login_database = {"rio": "123mudar",
-                  "caio": "123mudar"}
+# Login e senha dos usuários
+login_database = {"rio": "93f4a4e86cf842f2a03cd2eedbcd3c72325d6833fa991b895be40204be651427652c78b9cdbdef7c01f80a0acb58f791c36d49fbaa5738970e83772cea18eba1",
+                  "caio": "93f4a4e86cf842f2a03cd2eedbcd3c72325d6833fa991b895be40204be651427652c78b9cdbdef7c01f80a0acb58f791c36d49fbaa5738970e83772cea18eba1"}
+
 
 serv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
