@@ -20,86 +20,38 @@
 
 # echo-client.py
 import socket
-from sqlite3 import connect 
 import hashlib
-
-# IP da máquina conectada, por padrão 127.0.0.1
-ip = "127.0.0.1"
-
-# Porta usada para conexão
-port = 65432
-
-addr = (ip, port) 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-client_socket.connect(addr)
 
 
 def main():
+
+    # IP da máquina conectada, por padrão 127.0.0.1
+    ip = "127.0.0.1"
+
+    # Porta usada para conexão
+    port = 65432
+
+    addr = (ip, port) 
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    client_socket.connect(addr)
 
     # O usuário está desconectado por padrão
     connected = False
 
     while True:
         comando = input("Comando: ") 
-        comando = comando.split()
-        if comando[0] == 'CONNECT':
-            
-            # Divide o login e a senha
-            senha = comando[1].split(',')
-
-            # Criptografa a senha em SHA512 e junta novamente a string
-            hash = hashlib.sha512( str( senha[1] ).encode("utf-8") ).hexdigest()
-            comando = 'CONNECT ' + senha[0] + ',' + hash
-
         # Envia mensagem
+        if "CONNECT" in comando:
+            senha = comando.split(",")[1]
+            hash = hashlib.sha512( str( senha ).encode("utf-8") ).hexdigest()
+            comando = comando.split(",")[0] + "," + hash
+
         client_socket.send(comando.encode("utf-8"))
         resposta = client_socket.recv(1024).decode("utf-8")
-        resposta = resposta.split(' ')
+        print("resposta: ", resposta)
 
-        # Caso o login for bem sucedido o usuário é conectado
-        if resposta[0] == 'SUCCESS' and not connected:
-            print(resposta[0])
-            connected = True
-
-        #Verifica se o usuário está conectado
-        if connected:
-
-            # Se o usuário estiver conectado e receber EXIT, a conexão é fechada
-            if resposta[0] == 'EXIT':
-                client_socket.close()
-                break
-            
-            #Imprime o endereço do comando PWD 
-            if resposta[0] == 'PWD':
-                print(resposta[1])
-
-            #Imprime o resultado de CHDIR
-            if resposta[0] == 'CHDIR':
-                print(resposta[1])
-            
-            # Imprime os resultados do GETFILES
-            if resposta[0] == 'GETFILES':
-                arquivos = resposta[1].split(",")
-                
-                # Imprime o número de arquivos e em seguida o nome de todos eles
-                print("Número de arquivos: ", arquivos[-1:])
-                print("Arquivos: ")
-                for arquivo in range(len(arquivos)-1):
-                    print(arquivos[arquivo])
-            
-            # Imprime os resultados do GETDIRS
-            if resposta[0] == 'GETDIRS':
-                pastas = resposta[1].split(",")
-                
-                # Imprime o número de pastas e em seguida o nome de todas elas
-                print("Número de pastas: ", pastas[-1:])
-                print("Pastas: ")
-                for pasta in range(len(pastas)-1):
-                    print(pastas[pasta])
-
-        else:
-            # Caso qualquer comando tente ser executado sem algum usuário conectado, imprime a seguinte mensagem:
-            print(resposta[0], "you are not connected")
+        if resposta[0] == "EXIT":
+            break
 
 main()

@@ -14,23 +14,21 @@
 
     Autores: Caio José Cintra, Guilherme Del Rio
     Data de criação: 04/04/2022
-    Data de modificação: 11/04/2022
+    Data de modificação: 05/04/2022
 
 '''
 
+from sqlite3 import connect
 import threading 
 import socket 
 import os
-import hashlib
 
 host = ""
 porta = 65432
 addr = (host,porta) 
 
-# Login e senha dos usuários
 login_database = {"rio": "93f4a4e86cf842f2a03cd2eedbcd3c72325d6833fa991b895be40204be651427652c78b9cdbdef7c01f80a0acb58f791c36d49fbaa5738970e83772cea18eba1",
                   "caio": "93f4a4e86cf842f2a03cd2eedbcd3c72325d6833fa991b895be40204be651427652c78b9cdbdef7c01f80a0acb58f791c36d49fbaa5738970e83772cea18eba1"}
-
 
 serv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
@@ -38,124 +36,89 @@ serv_socket.bind(addr)
 
 
 def handler(ip, porta, socket):
+    connected = False
     while True:
+        resposta = ''
         # Recebe a mensagem
-        msg = socket.recv(1024)
-
-        # Decodifica a mensagem
-        msg_str = msg.decode('utf-8')
+        msg = socket.recv(1024).decode('utf-8')
+        print('Mensagem recebida: ', msg)
         # CONNECT rio,123mudar
-        msg_str = msg_str.split(' ')
-        
+        msg_str = msg.split(' ')
 
-        # Notifica servidor sobre a saída do cliente
-        if msg_str[0] == 'EXIT':
-            print('Cliente com o ip: ', ip, ', na porta: ', porta, ', foi desconectado!')
-            resposta = "EXIT" 
-            socket.send(resposta.encode('utf-8'))
-            break
+        # Verifica o login
+        if connected == False:
+            if msg_str[0] == 'CONNECT':
+                msg_str = msg_str[1].split(',')
+                if msg_str[0] in login_database:
+                    if msg_str[1] == login_database[msg_str[0]]:
+                        connected = True
+                        print("Connected: ",connected)
+                        resposta = 'SUCCESS'
+                        socket.send(resposta.encode('utf-8'))
+                        continue
+                    else:
+                        resposta = 'ERROR WRONG PASSWORD'
+                        socket.send(resposta.encode('utf-8'))
+                        continue
+                else:
+                    resposta = 'ERROR YOU ARE NOT REGISTERED'
+                    socket.send(resposta.encode('utf-8'))
+                    continue
         
+        print("Connected: ",connected)
+        if connected == True:
+            if msg_str[0] == 'PWD':
+                resposta = os.getcwd()
+                print("resposta pwd: ", resposta)
+            elif msg_str[0] == 'CHDIR':
+                try:
+                    os.chdir(msg_str[1])
+                    resposta = 'SUCCESS'
+                except:
+                    resposta = 'ERROR'
+            elif msg_str[0] == 'GETFILES':
+                
+                arquivos = os.listdir()
+                contador = 0
+
+                listaArquivos = ""
+                for nome in arquivos:
+                    if "." in nome:
+                        listaArquivos += str(nome) + ", "
+                        contador += 1
+                listaArquivos += "Numero de arquivos: " + str(contador)
+                resposta = listaArquivos
+
+            elif msg_str[0] == 'GETDIRS':
+
+                pastas = os.listdir()
+
+                contador = 0
+                folders_list = ""
+
+                for nome in pastas:
+                    if "." not in nome:
+                        folders_list += str(nome) + ", "
+                        contador += 1
+                folders_list += "Numero de pastas: " + str(contador)
+
+                print("folders_list: ", folders_list)
+                resposta = folders_list
+
+            elif msg_str[0] == 'EXIT':
+                resposta = 'EXIT'
+                print('Cliente com o ip: ', ip, ', na porta: ', porta, ', foi desconectado!')
+                resposta = "EXIT" 
+                socket.send(resposta.encode('utf-8'))
+                socket.close()
+                break
+            else:
+                resposta = 'ERROR'
+        else:
+            resposta = 'ERROR YOU ARE NOT CONNECTED'
+
         print("mensagem:" , msg_str)
 
-        # CONNECT
-        if msg_str[0] == 'CONNECT':
-
-            # Divide o nome de login e senha em duas string
-            dados_login = msg_str[1].split(',')
-
-            # Confere se os dados são compatíveis com os cadastrados
-            if dados_login[0] in login_database and login_database[dados_login[0]] == dados_login[1]:
-
-                # Caso o login for bem sucedido, imprime SUCCESS na tela
-                resposta = "SUCCESS"
-                socket.send(resposta.encode('utf-8'))
-                continue
-
-            else:
-
-                # Caso o login não for bem sucedido, imprime ERROR na tela
-                resposta = "ERROR"
-                socket.send(resposta.encode('utf-8'))
-                continue
-
-        #PWD
-        if msg_str[0] == 'PWD':
-
-            # Usa a função getcwd para conseguir o endereço do diretório
-            resposta = "PWD " + os.getcwd()
-
-            # O resultado é enviado ao cliente e é impresso na tela
-            socket.send(resposta.encode('utf-8'))
-            print("PWD: ", resposta)
-            continue
-        
-        # CHDIR
-        if msg_str[0] == "CHDIR":
-            try:
-
-                # Executa o comando chdir para alterar o diretório para o desejado
-                os.chdir(msg_str[1])
-
-                # Caso ocorra com sucesso ele retorna SUCCESS
-                resposta = "CHDIR SUCCESS"
-                socket.send(resposta.encode('utf-8'))
-            except:
-                
-                # Caso ocorra algum problema ele retorna ERROR
-                resposta = "CHDIR ERROR"
-                socket.send(resposta.encode('utf-8'))
-            continue
-        
-        #GETFILES
-        if msg_str[0] == 'GETFILES':
-
-            # Usa o comando listdir para receber uma lista com os arquivos e pastas
-            arquivos = os.listdir()
-
-            # Contador de arquivos inicializado com o valor 0
-            contador = 0
-
-            # Imprime os nomes dos arquivos encontrados
-            print(arquivos)
-
-            files_list = "GETFILES " #identificador que será enviado juntamente com a string para ser tratado no client
-            for nome in arquivos:
-                # Verifica os arquivos com um '.' no nome (extensão) para diferenciar de um diretório
-                if "." in nome:
-                    # A cada arquivo encontrado, o nome dele é colocado na lista de arquivos e incrementado o contador
-                    files_list += str(nome) + ","
-                    contador += 1
-            files_list += str(contador)
-            # Após passar por todos arquivos, a lista é devolvida para o usuário
-            socket.send(files_list.encode('utf-8'))
-            continue
-
-        if msg_str[0] == 'GETDIRS':
-            # Usa o comando listdir para receber uma lista com os arquivos e pastas
-            pastas = os.listdir()
-
-            # Contador de pastas inicializado com o valor 0
-            contador = 0
-
-            # Imprime os nomes dos arquivos encontrados
-            print("pastas: ", pastas)
-
-            folders_list = "GETDIRS " #identificador que será enviado juntamente com a string para ser tratado no client
-            for nome in pastas:
-                # Verifica os arquivos sem um '.' no nome (extensão) para diferenciar de um arquivo
-                if "." not in nome:
-                    # A cada pasta encontrada, o nome é colocado na lista de pastas e incrementado o contador
-                    folders_list += str(nome) + ","
-                    contador += 1
-            folders_list += str(contador)
-            print("folders_list: ", folders_list)
-
-            # Após passar por todas pastas, a lista é devolvida para o usuário
-            socket.send(folders_list.encode('utf-8'))
-
-            continue
-        
-        resposta = "ERROR"
         socket.send(resposta.encode('utf-8'))
 
 def main():

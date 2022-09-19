@@ -1,71 +1,86 @@
-"""
+'''
+
     Programação com sockets TCP
 
-    Descrição:aplicação com um servidor que gerencia um conjunto de arquivos remotos entre múltiplos usuários, usando os seguintes comandos:
-    ADDFILE (1): adiciona um arquivo novo.
-    DELETE (2): remove um arquivo existente.
-    GETFILESLIST (3): retorna uma lista com o nome dos arquivos.
-    GETFILE (4): faz download de um arquivo.
+    Descrição: Servidor que processa mensagens de múltiplos clientes com as seguintes operações disponíveis:
 
+    CONNECT user,password: Conecta o usuário na servidor usando sua senha, em caso de sucesso deveolvendo SUCCESS e caso contrário devolvendo ERROR,
+    enquanto o usuário não está conectado ele não pode executar comandos.
+    PWD: Devolve o caminho corrente usando String UTF, separando diretórios por barra.
+    CHDIR path: Altera o diretório atual para path, retornando SUCCESS caso seja bem sucedido e ERROR caso contrário.
+    GETFILES: Devolve os arquivos do diretório atual no servidor.
+    GETDIRS: Devolve os diretórios do diretório atual do servidor.
+    EXIT: Finaliza a conexão.
+    
     Autores: Caio José Cintra, Guilherme Del Rio
-    Data de criação: 09/04/2022
-    Data de modificação: 12/04/2022
+    Data de criação: 04/04/2022
+    Data de modificação: 05/04/2022
 
-Solicitações:
-----------------------------------------------------------------
-|     0x01     |   0x01 a 0x04  |               | 0 a 255bytes |
-----------------------------------------------------------------
-| Message Type | Command Ident. | Filename Size |   Filename   |
-----------------------------------------------------------------
+'''
+
+# echo-client.py
+import socket
+import struct
+
+
+"""
+                    SOLICITAÇÃO
+
+1 byte: requisição (1) – Message Type (0x01)
+1 byte: código do comando – Command Identifier (0x01 a 0x04)
+1 byte: tamanho do nome do arquivo – Filename Size
+variável [0-255]: nome do arquivo em bytes – Filename
+     1 byte            1 byte            1 byte        [0 a 255 bytes]
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Message Type | Command Identifier | Filename Size |      Filename     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 """
 
-import socket
-import os
 
+def criarCabecalho(tipoMensagem, idComando, tamanhoNome, nomeArquivo):
+    cabecalho = bytearray(3)
+    bNomeArquivo = bytearray(nomeArquivo, 'utf-8')
+    cabecalho[0] = tipoMensagem
+    cabecalho[1] = idComando
+    cabecalho[2] = tamanhoNome
+    
+    print("Byte: ", cabecalho, "nome arquivo: ", bNomeArquivo)
 
-# IP da máquina conectada, por padrão 127.0.0.1
-ip = "127.0.0.1"
-
-# Porta usada para conexão
-port = 65432
-
-addr = (ip, port) 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-client_socket.connect(addr)
-
+    return cabecalho, bNomeArquivo
 
 
 def main():
+
+    # IP da máquina conectada, por padrão 127.0.0.1
+    ip = "127.0.0.1"
+
+    # Porta usada para conexão
+    port = 65432
+
+    addr = (ip, port) 
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    client_socket.connect(addr)
+    
+
     while True:
-        header = bytearray(4)
-        header[0] = 1
+        resposta = input("Comando: ") 
+
+        print("resposta: ", resposta)
+        if(resposta.split()[0] == "ADDFILE"):
+            nomeArquivo = resposta.split()[1]
+            cabecalho, bnomeArquivo = criarCabecalho(1, 1, len(nomeArquivo), nomeArquivo)
 
 
-        comando = input("Comando: ") 
-        if len(comando.split()) > 1:
-            operation = comando.split()[0].upper()
-            fileName = comando.split()[1]
-        else:
-            operation = comando.upper()
-        
-        if operation == "ADDFILE": 
-            header[1] = 1
-            header[2] = len(fileName)
-            arquivos = os.listdir()
-            flag = False
-            for nome in arquivos:
-                if fileName == nome:
-                    bFileName = bytearray(fileName.encode())
-                    tamArquivo = (os.stat(fileName).st_size).to_bytes(4, "big")
-                    flag = True
+        client_socket.send(cabecalho + bnomeArquivo)
+        # resposta = client_socket.recv(1024).decode("utf-8")
 
-            if flag:
-                client_socket.send(header + bFileName + tamArquivo)
-                arquivo = open(fileName, 'rb') #abre o arquivo
-                arquivo = arquivo.read() #le o arquivo
-                client_socket.send(arquivo) #envia o arquivo
-            
 
+
+
+
+        # if resposta[0] == "EXIT":
+        #     break
 
 main()

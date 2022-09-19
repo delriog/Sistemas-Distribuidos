@@ -1,28 +1,27 @@
-"""
+'''
+
     Programação com sockets TCP
 
-    Descrição:aplicação com um servidor que gerencia um conjunto de arquivos remotos entre múltiplos usuários, usando os seguintes comandos:
-    ADDFILE (1): adiciona um arquivo novo.
-    DELETE (2): remove um arquivo existente.
-    GETFILESLIST (3): retorna uma lista com o nome dos arquivos.
-    GETFILE (4): faz download de um arquivo.
+    Descrição: Servidor que processa mensagens de múltiplos clientes com as seguintes operações disponíveis:
+
+    CONNECT user,password: Conecta o usuário na servidor usando sua senha, em caso de sucesso deveolvendo SUCCESS e caso contrário devolvendo ERROR,
+    enquanto o usuário não está conectado ele não pode executar comandos.
+    PWD: Devolve o caminho corrente usando String UTF, separando diretórios por barra.
+    CHDIR path: Altera o diretório atual para 'path', retornando SUCCESS caso seja bem sucedido e ERROR caso contrário.
+    GETFILES: Devolve os arquivos do diretório atual no servidor.
+    GETDIRS: Devolve os diretórios do diretório atual do servidor.
+    EXIT: Finaliza a conexão.
 
     Autores: Caio José Cintra, Guilherme Del Rio
-    Data de criação: 09/04/2022
-    Data de modificação: 12/04/2022
+    Data de criação: 04/04/2022
+    Data de modificação: 05/04/2022
 
-Respostas:
-------------------------------------------------------
-|     0x02     |   0x01 a 0x04  | 1-SUCCESS, 2-ERROR |
-------------------------------------------------------
-| Message Type | Command Ident. |     Status Code    |
-------------------------------------------------------
-"""
+'''
 
+from sqlite3 import connect
 import threading 
 import socket 
 import os
-
 
 host = ""
 porta = 65432
@@ -32,30 +31,25 @@ serv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
 serv_socket.bind(addr)
 
+"""
+                    RESPOSTAS
+1 byte: resposta (2) – Message Type (0x02)
+1 byte: código do comando – Command Identifier (0x01 a 0x04)
+1 byte: status code (1-SUCCESS, 2-ERROR) – Status Code
+     1 byte            1 byte           1 byte    
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Message Type | Command Identifier | status code |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+"""
+
+
 def handler(ip, porta, socket):
     while True:
-        header = bytearray(3)
-        header[0] = 2
-
-        # Recebe a mensagem
-        msg = bytearray(socket.recv(1024))
-        message_type = int(msg[0])
-        command_ident = int(msg[1])
-        filename_size = int(msg[2])
-        file_name = msg[3:-(filename_size)].decode('utf-8')
-        file = str(file_name)
-
-        if command_ident == 1: 
-            bFile_size = msg[-4:]
-
-            file_size = int.from_bytes(bFile_size, byteorder='big')
-            arquivo = socket.recv(file_size)
-            with open("./arquivos/" + file, 'wb') as file:
-                file.write(arquivo)
+        msg_str = socket.recv(1024)
 
 
 
-
+        # socket.send(resposta.encode('utf-8'))
 
 def main():
     vetorThreads = []
@@ -75,5 +69,11 @@ def main():
         # Adiciona ao vetor de threads
         vetorThreads.append(thread)
         
+    # Aguarda todas as threads serem finalizadas
+    for t in vetorThreads: 
+        t.join()
+
+    # Fecha conexão
+    serv_socket.close()
 
 main()
