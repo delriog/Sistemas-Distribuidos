@@ -18,7 +18,6 @@
 # echo-client.py
 from re import I
 import socket
-import struct
 import os
 
 """
@@ -36,7 +35,7 @@ variável [0-255]: nome do arquivo em bytes – Filename
 """
 
 
-def criarCabecalho(tipoMensagem, idComando, nomeArquivo, tamanhoArquivo=None):
+def criarCabecalho(tipoMensagem, idComando, nomeArquivo, tamanhoArquivo=None): # Cria um cabeçalho como o esquematizado acima, ele recebe em seus parametros cada um de seus campos como mostrado acima
 
     bTipoMensagem = tipoMensagem.to_bytes(1, 'big')
     # print("bTipoMensagem: ", bTipoMensagem)
@@ -44,33 +43,33 @@ def criarCabecalho(tipoMensagem, idComando, nomeArquivo, tamanhoArquivo=None):
     bIdComando = idComando.to_bytes(1, 'big')
     # print("bIdComando: ", bIdComando)
 
-    if(nomeArquivo != None):
+    if(nomeArquivo != None): #caso houver campos adicionais no cabecalho, sera adicionado ao final do mesmo
         bNomeArquivo = nomeArquivo.encode("utf-8")
         # print("bNomeArquivo: ", bNomeArquivo)
     
         bTamanhoNome = len(bNomeArquivo).to_bytes(1, 'big')
         # print("bTamanhoNome: ", bTamanhoNome)
 
-    if(idComando == 1):
+    if(idComando == 1): #caso o comando seja ADDFILE, o tamanho do arquivo sera adicionado ao final do cabecalho
         bTamanhoArquivo = tamanhoArquivo.to_bytes(4, 'big')
         # print("bTamanhoArquivo: ", bTamanhoArquivo)
         cabecalho = bTipoMensagem + bIdComando + bTamanhoNome + bNomeArquivo + bTamanhoArquivo
 
-        print("cabecalho: ", cabecalho)
+        # print("cabecalho: ", cabecalho)
         return cabecalho
 
-    if(idComando == 3):
+    if(idComando == 3): #caso o comando seja GETFILESLIST, o tamanho do arquivo sera adicionado ao final do cabecalho
         cabecalho = bTipoMensagem + bIdComando
-        print("cabecalho: ", cabecalho)
+        # print("cabecalho: ", cabecalho)
         return cabecalho
 
-    cabecalho = bTipoMensagem + bIdComando + bTamanhoNome + bNomeArquivo
-    print("cabecalho: ", cabecalho)
+    cabecalho = bTipoMensagem + bIdComando + bTamanhoNome + bNomeArquivo #caso o comando seja DELETE ou GETFILE, o tamanho do arquivo nao sera adicionado ao final do cabecalho
+    # print("cabecalho: ", cabecalho)
     return cabecalho
 
 
 def main():
-
+    
     # IP da máquina conectada, por padrão 127.0.0.1
     ip = "127.0.0.1"
 
@@ -84,19 +83,19 @@ def main():
     
 
     while True:
-        comando = input("Comando: ") 
+        comando = input("Comando: ")  # Recebe o comando do usuário
 
-        if(comando.split()[0] == "ADDFILE"):
-            nomeArquivo = comando.split()[1]
+        if(comando.split()[0] == "ADDFILE"): # Caso o comando seja ADDFILE, o cabecalho sera enviado ao servidor
+            nomeArquivo = comando.split()[1] 
             try:
-                tamanhoArquivo = os.path.getsize(nomeArquivo)
-                cabecalho = criarCabecalho(1, 1, nomeArquivo, tamanhoArquivo)
+                tamanhoArquivo = os.path.getsize(nomeArquivo) # Tamanho do arquivo
+                cabecalho = criarCabecalho(1, 1, nomeArquivo, tamanhoArquivo)  # Cria o cabeçalho
             except:
-                print("Arquivo não encontrado")
+                print("Arquivo não encontrado") # Caso o arquivo nao seja encontrado, sera exibida uma mensagem de erro
                 continue
             
 
-            client_socket.send(cabecalho)
+            client_socket.send(cabecalho) # Envia o cabeçalho ao servidor
 
             # Envia o arquivo byte a byte
             with open(nomeArquivo, 'rb') as file:
@@ -106,73 +105,73 @@ def main():
                     byte = file.read(1)
 
 
-        elif(comando.split()[0] == "DELETE"):
+        elif(comando.split()[0] == "DELETE"): # Caso o comando seja DELETE, o cabecalho sera enviado ao servidor com o arquivo a ser deletado
             nomeArquivo = comando.split()[1]
             try:
-                tamanhoArquivo = os.path.getsize(nomeArquivo)
-                cabecalho = criarCabecalho(1, 2, nomeArquivo)
-                client_socket.send(cabecalho)
+                tamanhoArquivo = os.path.getsize(nomeArquivo) # Tamanho do arquivo
+                cabecalho = criarCabecalho(1, 2, nomeArquivo) # Cria o cabeçalho
+                client_socket.send(cabecalho) # Envia o cabeçalho ao servidor
             except:
-                print("Arquivo não encontrado")
+                print("Arquivo não encontrado") # Caso o arquivo nao seja encontrado, sera exibida uma mensagem de erro
                 continue
 
-        elif(comando.split()[0] == "GETFILESLIST"):
-            cabecalho = criarCabecalho(1, 3, None)
-            client_socket.send(cabecalho)
+        elif(comando.split()[0] == "GETFILESLIST"): # Caso o comando seja GETFILESLIST, o cabecalho sera enviado ao servidor
+            cabecalho = criarCabecalho(1, 3, None) # Cria o cabeçalho
+            client_socket.send(cabecalho) # Envia o cabeçalho ao servidor
 
-        elif(comando.split()[0] == "GETFILE"):
-            cabecalho = criarCabecalho(1, 4, comando.split()[1])
+        elif(comando.split()[0] == "GETFILE"): # Caso o comando seja GETFILE, o cabecalho sera enviado ao servidor com o arquivo a ser baixado
+            cabecalho = criarCabecalho(1, 4, comando.split()[1]) # Cria o cabeçalho
             # print("cabecalho client: ", cabecalho)
-            client_socket.send(cabecalho)
+            client_socket.send(cabecalho) # Envia o cabeçalho ao servidor
 
         else:
-            print("Comando inválido")
+            print("Comando inválido") # Caso o comando nao seja reconhecido, sera exibida uma mensagem de erro
             continue
 
-        respostaServidor = client_socket.recv(1024)
+        respostaServidor = client_socket.recv(1024) # Recebe a resposta do servidor
         # print("Resposta do servidor: ", respostaServidor)
         
 
-        if(respostaServidor[1:2] == b'\x03'):
-            qtdArquivos = int.from_bytes(respostaServidor[3:4], 'big')
-            print("Quantidade de arquivos: ", qtdArquivos)
-            arquivos = respostaServidor[4:]
+        if(respostaServidor[1:2] == b'\x03'): # Caso o comando seja GETFILESLIST, o servidor ira retornar uma lista de arquivos
+            qtdArquivos = int.from_bytes(respostaServidor[3:4], 'big') # Quantidade de arquivos
+            print("Quantidade de arquivos: ", qtdArquivos) # Exibe a quantidade de arquivos
+            arquivos = respostaServidor[4:] # Lista de arquivos
             # print("arquivos split: ", arquivos)
-            x = 0
-            for i in range(qtdArquivos):
-                tamanhoNome = int.from_bytes(arquivos[i+x:i+x+1], 'big')
+            x = 0 # Variavel auxiliar
+            for i in range(qtdArquivos): # Exibe a lista de arquivos
+                tamanhoNome = int.from_bytes(arquivos[i+x:i+x+1], 'big') # Tamanho do nome do arquivo
                 # print("tamanhoNome: ", tamanhoNome)
-                nomeArquivo = arquivos[i+x+1:i+x+1+tamanhoNome].decode("utf-8")
-                print("Nome arquivo: ", nomeArquivo)
-                x += tamanhoNome
+                nomeArquivo = arquivos[i+x+1:i+x+1+tamanhoNome].decode("utf-8") # Nome do arquivo
+                print("Nome arquivo: ", nomeArquivo) # Exibe o nome do arquivo
+                x += tamanhoNome # Incrementa a variavel auxiliar
 
-        if(respostaServidor[1:2] == b'\x04' and respostaServidor[2:3] == b'\x01'):
-            tamanhoArquivo = int.from_bytes(respostaServidor[3:7], 'big')
+        if(respostaServidor[1:2] == b'\x04' and respostaServidor[2:3] == b'\x01'): # Caso o comando seja GETFILE e o arquivo exista, o servidor ira retornar o arquivo
+            tamanhoArquivo = int.from_bytes(respostaServidor[3:7], 'big') # Tamanho do arquivo
             # print("tamanhoArquivo: ", tamanhoArquivo)
-            nomeArquivo = respostaServidor[7:].decode("utf-8")
+            nomeArquivo = respostaServidor[7:].decode("utf-8") # Nome do arquivo
             # print("nomeArquivo: ", nomeArquivo)
-            arquivo = b''
-            for _ in range(tamanhoArquivo):
+            arquivo = b'' 
+            for _ in range(tamanhoArquivo): # Recebe o arquivo byte a byte
                 bytes = client_socket.recv(1)
                 arquivo += bytes
             
-            with open('./ArquivosClient/' + nomeArquivo, 'w+b') as file:
+            with open('./ArquivosClient/' + nomeArquivo, 'w+b') as file: # Cria o arquivo na pasta de arquivos do cliente 
                 file.write(arquivo)
         
 
 
-        messageType = int.from_bytes(respostaServidor[:1], 'big')
+        messageType = int.from_bytes(respostaServidor[:1], 'big') # Tipo de mensagem
         # print("messageType: ", messageType)
 
-        commandIdentifier = int.from_bytes(respostaServidor[1:2], 'big')
+        commandIdentifier = int.from_bytes(respostaServidor[1:2], 'big') # Identificador do comando
         # print("commandIdentifier: ", commandIdentifier)
 
-        statusCode = int.from_bytes(respostaServidor[2:3], 'big')
+        statusCode = int.from_bytes(respostaServidor[2:3], 'big') # Codigo de status
         # print("statusCode: ", statusCode)
 
-        if(statusCode == 1):
+        if(statusCode == 1): # Caso o codigo de status seja 1, o comando foi executado com sucesso
             print("Operação realizada com sucesso")
         else:
-            print("Erro na operação")
+            print("Erro na operação") # Caso o codigo de status seja 2, o comando nao foi executado com sucesso
 
 main()

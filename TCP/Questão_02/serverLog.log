@@ -1,0 +1,18 @@
+INFO:root:Arquivo salvo com sucesso
+INFO:root:Cliente: 127.0.0.1 conectado na porta 63738
+INFO:root:Cliente: 127.0.0.1 conectado na porta 63751
+INFO:root:mensagem recebida: b'\x01\x02\x08file.txt'
+INFO:root:Arquivo removido com sucesso
+INFO:root:cabeçalho criado: b'\x02\x02\x01'
+INFO:root:mensagem recebida: b'\x01\x01\x08file.txt\x00\x00\x00\x19'
+INFO:root:Arquivo salvo com sucesso
+INFO:root:cabeçalho criado: b'\x02\x01\x01'
+INFO:root:mensagem recebida: b'\x01\x02\x07alo.txt'
+INFO:root:Arquivo removido com sucesso
+INFO:root:cabeçalho criado: b'\x02\x02\x01'
+INFO:root:mensagem recebida: b'\x01\x04\x08loud.txt'
+INFO:root:cabeçalho criado: b'\x02\x04\x02'
+INFO:root:mensagem recebida: b'\x01\x04\x12paingamingvice.txt'
+INFO:root:Arquivo encontrado com sucesso: paingamingvice.txt
+INFO:root:cabeçalho criado: b'\x02\x04\x01\x00\x00\x00npaingamingvice.txt'
+INFO:root:Arquivo enviado com sucesso

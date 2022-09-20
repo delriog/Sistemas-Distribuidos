@@ -3,7 +3,7 @@
     python3 server.py
     python3 client.py
 
-    Execute cada um destes comandos em uma aba diferente do terminal 
+    Execute cada um destes comandos a cima em uma aba diferente do terminal 
     
     # Bibliotecas usadas
 
