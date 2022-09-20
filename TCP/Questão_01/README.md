@@ -1,7 +1,7 @@
     #   Como Executar
 
-    python3 client.py
     python3 server.py
+    python3 client.py
 
     Execute cada um destes comandos em uma aba diferente do terminal 
 
@@ -20,18 +20,14 @@
     Client: PWD
     Server: F:\UTFPR\Sistemas-Distribuidos\TCP\Questão_01
 
-    Client: CHDIR
-    Server: 
+    Client: CHDIR F:\UTFPR\SD\Sistemas-Distribuidos\TCP\
+    Server: SUCCESS
 
     Client: GETFILES
-    Server: Número de arquivos:  ['2']
-            Arquivos:
-            client.py
-            server.py
+    Server: client.py, README.md, server.py, Numero de arquivos: 3
 
     Client: GETDIRS
-    Server: Número de pastas:  ['0']
-            Pastas:
+    Server: Numero de pastas: 0
 
     Client: EXIT
     Server: *Encerra o programa*
