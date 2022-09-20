@@ -42,14 +42,84 @@ serv_socket.bind(addr)
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 """
 
+def criaCabecalho(messageType, commandIdentifier, statusCode, opcao):
+    if statusCode:
+        statusCode = 1
+    else:
+        statusCode = 2
+
+    if opcao != '':
+        return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big') + opcao
+
+    return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big')
 
 def handler(ip, porta, socket):
     while True:
+        success = False
         msg_str = socket.recv(1024)
 
+        messageType = int.from_bytes(msg_str[:1], 'big')
+        print("messageType: ", messageType)
+
+        commandIdentifier = int.from_bytes(msg_str[1:2], 'big')
+        print("commandIdentifier: ", commandIdentifier)
+
+        tamanhoNome = int.from_bytes(msg_str[2:3], 'big')
+        print("tamanhoNome: ", tamanhoNome)
+
+        nomeArquivo = msg_str[3:tamanhoNome+3].decode('utf-8')
+        print('Mensagem recebida: ', nomeArquivo)
+
+        listaArquivos = bytearray()
+        
+
+        if commandIdentifier == 1:
+            print(msg_str[-4:])
+            tamanhoArquivo = int.from_bytes(msg_str[-4:], 'big')
+            print("tamanhoArquivo: ", tamanhoArquivo)
+
+            arquivo = b''
+            for _ in range(tamanhoArquivo):
+                bytes = socket.recv(1)
+                arquivo += bytes
+            
+            # Salva o arquivo
+            with open('./Arquivos/' + nomeArquivo, 'w+b') as file:
+                file.write(arquivo)
+
+            success = True
+
+        elif commandIdentifier == 2:
+            try:
+                os.remove('./Arquivos/' + nomeArquivo)
+                success = True
+            except:
+                pass
+        
+        elif commandIdentifier == 3:
+            arquivos = os.listdir(path='./Arquivos')
+            print("Arquivos: ", arquivos)
+
+            qtdArquivos = len(arquivos)
+            listaArquivos += qtdArquivos.to_bytes(1, 'big')
+            for arquivo in arquivos:
+                nome = arquivo.encode('utf-8')
+                tamanhoNome = len(nome)
+                print("nome: ", nome)
+                print("tamanhoNome: ", tamanhoNome)
+                print("tamanhoNome.to_bytes(1, 'big'): ", tamanhoNome.to_bytes(1, 'big'))
+                listaArquivos += tamanhoNome.to_bytes(1, 'big') + nome
+            
+            success = True
 
 
-        # socket.send(resposta.encode('utf-8'))
+        if success:
+            resposta = criaCabecalho(2, commandIdentifier, 1, listaArquivos)
+        else:
+            resposta = criaCabecalho(2, commandIdentifier, 2, listaArquivos)
+
+        print("Resposta: ", resposta)
+        socket.send(resposta)
 
 def main():
     vetorThreads = []

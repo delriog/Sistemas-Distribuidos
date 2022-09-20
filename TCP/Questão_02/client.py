@@ -19,9 +19,10 @@
 '''
 
 # echo-client.py
+from re import I
 import socket
 import struct
-
+import os
 
 """
                     SOLICITAÇÃO
@@ -38,16 +39,37 @@ variável [0-255]: nome do arquivo em bytes – Filename
 """
 
 
-def criarCabecalho(tipoMensagem, idComando, tamanhoNome, nomeArquivo):
-    cabecalho = bytearray(3)
-    bNomeArquivo = bytearray(nomeArquivo, 'utf-8')
-    cabecalho[0] = tipoMensagem
-    cabecalho[1] = idComando
-    cabecalho[2] = tamanhoNome
-    
-    print("Byte: ", cabecalho, "nome arquivo: ", bNomeArquivo)
+def criarCabecalho(tipoMensagem, idComando, nomeArquivo, tamanhoArquivo=None):
 
-    return cabecalho, bNomeArquivo
+    bTipoMensagem = tipoMensagem.to_bytes(1, 'big')
+    # print("bTipoMensagem: ", bTipoMensagem)
+
+    bIdComando = idComando.to_bytes(1, 'big')
+    # print("bIdComando: ", bIdComando)
+
+    if(nomeArquivo != None):
+        bNomeArquivo = nomeArquivo.encode("utf-8")
+        # print("bNomeArquivo: ", bNomeArquivo)
+    
+        bTamanhoNome = len(bNomeArquivo).to_bytes(1, 'big')
+        # print("bTamanhoNome: ", bTamanhoNome)
+
+    if(idComando == 1):
+        bTamanhoArquivo = tamanhoArquivo.to_bytes(4, 'big')
+        # print("bTamanhoArquivo: ", bTamanhoArquivo)
+        cabecalho = bTipoMensagem + bIdComando + bTamanhoNome + bNomeArquivo + bTamanhoArquivo
+
+        print("cabecalho: ", cabecalho)
+        return cabecalho
+
+    if(idComando == 3):
+        cabecalho = bTipoMensagem + bIdComando
+        print("cabecalho: ", cabecalho)
+        return cabecalho
+
+    cabecalho = bTipoMensagem + bIdComando + bTamanhoNome + bNomeArquivo
+    print("cabecalho: ", cabecalho)
+    return cabecalho
 
 
 def main():
@@ -65,17 +87,72 @@ def main():
     
 
     while True:
-        resposta = input("Comando: ") 
+        comando = input("Comando: ") 
 
-        print("resposta: ", resposta)
-        if(resposta.split()[0] == "ADDFILE"):
-            nomeArquivo = resposta.split()[1]
-            cabecalho, bnomeArquivo = criarCabecalho(1, 1, len(nomeArquivo), nomeArquivo)
+        if(comando.split()[0] == "ADDFILE"):
+            nomeArquivo = comando.split()[1]
+            try:
+                tamanhoArquivo = os.path.getsize(nomeArquivo)
+                cabecalho = criarCabecalho(1, 1, nomeArquivo, tamanhoArquivo)
+            except:
+                print("Arquivo não encontrado")
+                continue
+            
+
+            client_socket.send(cabecalho)
+
+            # Envia o arquivo byte a byte
+            with open(nomeArquivo, 'rb') as file:
+                byte = file.read(1)
+                while byte != b'':
+                    client_socket.send(byte)
+                    byte = file.read(1)
 
 
-        client_socket.send(cabecalho + bnomeArquivo)
-        # resposta = client_socket.recv(1024).decode("utf-8")
+        if(comando.split()[0] == "DELETE"):
+            nomeArquivo = comando.split()[1]
+            try:
+                tamanhoArquivo = os.path.getsize(nomeArquivo)
+                cabecalho = criarCabecalho(1, 2, nomeArquivo)
+                client_socket.send(cabecalho)
+            except:
+                print("Arquivo não encontrado")
+                continue
 
+        if(comando.split()[0] == "GETFILESLIST"):
+            cabecalho = criarCabecalho(1, 3, None)
+            client_socket.send(cabecalho)
+
+        respostaServidor = client_socket.recv(1024)
+        print("Resposta do servidor: ", respostaServidor)
+        
+
+        if(respostaServidor[1:2] == b'\x03'):
+            qtdArquivos = int.from_bytes(respostaServidor[3:4], 'big')
+            print("qtdArquivos: ", qtdArquivos)
+            arquivos = respostaServidor[4:]
+            # print("arquivos split: ", arquivos)
+            x = 0
+            for i in range(qtdArquivos):
+                tamanhoNome = int.from_bytes(arquivos[i+x:i+x+1], 'big')
+                # print("tamanhoNome: ", tamanhoNome)
+                nomeArquivo = arquivos[i+x+1:i+x+1+tamanhoNome].decode("utf-8")
+                print("nomeArquivo: ", nomeArquivo)
+                x += tamanhoNome
+
+        messageType = int.from_bytes(respostaServidor[:1], 'big')
+        # print("messageType: ", messageType)
+
+        commandIdentifier = int.from_bytes(respostaServidor[1:2], 'big')
+        # print("commandIdentifier: ", commandIdentifier)
+
+        statusCode = int.from_bytes(respostaServidor[2:3], 'big')
+        # print("statusCode: ", statusCode)
+
+        if(statusCode == 1):
+            print("Operação realizada com sucesso")
+        else:
+            print("Erro na operação")
 
 
 
