@@ -4,17 +4,14 @@
 
     Descrição: Servidor que processa mensagens de múltiplos clientes com as seguintes operações disponíveis:
 
-    CONNECT user,password: Conecta o usuário na servidor usando sua senha, em caso de sucesso deveolvendo SUCCESS e caso contrário devolvendo ERROR,
-    enquanto o usuário não está conectado ele não pode executar comandos.
-    PWD: Devolve o caminho corrente usando String UTF, separando diretórios por barra.
-    CHDIR path: Altera o diretório atual para path, retornando SUCCESS caso seja bem sucedido e ERROR caso contrário.
-    GETFILES: Devolve os arquivos do diretório atual no servidor.
-    GETDIRS: Devolve os diretórios do diretório atual do servidor.
-    EXIT: Finaliza a conexão.
-    
+    -> ADDFILE (1): adiciona um arquivo novo.
+    -> DELETE (2): remove um arquivo existente.
+    -> GETFILESLIST (3): retorna uma lista com o nome dos arquivos.
+    -> GETFILE (4): faz download de um arquivo
+
     Autores: Caio José Cintra, Guilherme Del Rio
-    Data de criação: 04/04/2022
-    Data de modificação: 05/04/2022
+    Data de criação: 10/09/2022
+    Data de modificação: 19/09/2022, 20/09/2022
 
 '''
 

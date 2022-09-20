@@ -13,8 +13,8 @@
     EXIT: Finaliza a conexão.
 
     Autores: Caio José Cintra, Guilherme Del Rio
-    Data de criação: 04/04/2022
-    Data de modificação: 05/04/2022
+    Data de criação: 10/09/2022
+    Data de modificação: 19/09/2022
 
 '''
 
@@ -35,7 +35,7 @@ serv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 serv_socket.bind(addr)
 
 
-def handler(ip, porta, socket):
+def handler(ip, porta, socket):    # Função que executa as funções do servidor, ela recebe o ip a porta e o socket para executar
     connected = False
     while True:
         resposta = ''
@@ -50,32 +50,40 @@ def handler(ip, porta, socket):
             if msg_str[0] == 'CONNECT':
                 msg_str = msg_str[1].split(',')
                 if msg_str[0] in login_database:
-                    if msg_str[1] == login_database[msg_str[0]]:
+                    if msg_str[1] == login_database[msg_str[0]]:    # Conectado com sucesso
                         connected = True
                         print("Connected: ",connected)
                         resposta = 'SUCCESS'
                         socket.send(resposta.encode('utf-8'))
                         continue
-                    else:
+
+                    else:                                          # Senha incorreta
                         resposta = 'ERROR WRONG PASSWORD'
                         socket.send(resposta.encode('utf-8'))
                         continue
-                else:
+
+                else:                                              # Usuário não registrado
                     resposta = 'ERROR YOU ARE NOT REGISTERED'
                     socket.send(resposta.encode('utf-8'))
                     continue
         
         print("Connected: ",connected)
         if connected == True:
+
+            # Comando PWD
             if msg_str[0] == 'PWD':
                 resposta = os.getcwd()
-                print("resposta pwd: ", resposta)
+                print("Resposta pwd: ", resposta)
+
+            # Comando CHDIR
             elif msg_str[0] == 'CHDIR':
                 try:
                     os.chdir(msg_str[1])
                     resposta = 'SUCCESS'
                 except:
                     resposta = 'ERROR'
+
+            # Comando GETFILES
             elif msg_str[0] == 'GETFILES':
                 
                 arquivos = os.listdir()
@@ -89,6 +97,7 @@ def handler(ip, porta, socket):
                 listaArquivos += "Numero de arquivos: " + str(contador)
                 resposta = listaArquivos
 
+            # Comando GETDIRS
             elif msg_str[0] == 'GETDIRS':
 
                 pastas = os.listdir()
@@ -105,6 +114,7 @@ def handler(ip, porta, socket):
                 print("folders_list: ", folders_list)
                 resposta = folders_list
 
+            # Comando EXIT
             elif msg_str[0] == 'EXIT':
                 resposta = 'EXIT'
                 print('Cliente com o ip: ', ip, ', na porta: ', porta, ', foi desconectado!')
