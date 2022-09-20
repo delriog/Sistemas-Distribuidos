@@ -109,7 +109,7 @@ def main():
                     byte = file.read(1)
 
 
-        if(comando.split()[0] == "DELETE"):
+        elif(comando.split()[0] == "DELETE"):
             nomeArquivo = comando.split()[1]
             try:
                 tamanhoArquivo = os.path.getsize(nomeArquivo)
@@ -119,17 +119,26 @@ def main():
                 print("Arquivo não encontrado")
                 continue
 
-        if(comando.split()[0] == "GETFILESLIST"):
+        elif(comando.split()[0] == "GETFILESLIST"):
             cabecalho = criarCabecalho(1, 3, None)
             client_socket.send(cabecalho)
 
+        elif(comando.split()[0] == "GETFILE"):
+            cabecalho = criarCabecalho(1, 4, comando.split()[1])
+            # print("cabecalho client: ", cabecalho)
+            client_socket.send(cabecalho)
+
+        else:
+            print("Comando inválido")
+            continue
+
         respostaServidor = client_socket.recv(1024)
-        print("Resposta do servidor: ", respostaServidor)
+        # print("Resposta do servidor: ", respostaServidor)
         
 
         if(respostaServidor[1:2] == b'\x03'):
             qtdArquivos = int.from_bytes(respostaServidor[3:4], 'big')
-            print("qtdArquivos: ", qtdArquivos)
+            print("Quantidade de arquivos: ", qtdArquivos)
             arquivos = respostaServidor[4:]
             # print("arquivos split: ", arquivos)
             x = 0
@@ -137,8 +146,23 @@ def main():
                 tamanhoNome = int.from_bytes(arquivos[i+x:i+x+1], 'big')
                 # print("tamanhoNome: ", tamanhoNome)
                 nomeArquivo = arquivos[i+x+1:i+x+1+tamanhoNome].decode("utf-8")
-                print("nomeArquivo: ", nomeArquivo)
+                print("Nome arquivo: ", nomeArquivo)
                 x += tamanhoNome
+
+        if(respostaServidor[1:2] == b'\x04' and respostaServidor[2:3] == b'\x01'):
+            tamanhoArquivo = int.from_bytes(respostaServidor[3:7], 'big')
+            # print("tamanhoArquivo: ", tamanhoArquivo)
+            nomeArquivo = respostaServidor[7:].decode("utf-8")
+            # print("nomeArquivo: ", nomeArquivo)
+            arquivo = b''
+            for _ in range(tamanhoArquivo):
+                bytes = client_socket.recv(1)
+                arquivo += bytes
+            
+            with open('./ArquivosClient/' + nomeArquivo, 'w+b') as file:
+                file.write(arquivo)
+        
+
 
         messageType = int.from_bytes(respostaServidor[:1], 'big')
         # print("messageType: ", messageType)
@@ -153,11 +177,5 @@ def main():
             print("Operação realizada com sucesso")
         else:
             print("Erro na operação")
-
-
-
-
-        # if resposta[0] == "EXIT":
-        #     break
 
 main()

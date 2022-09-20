@@ -43,12 +43,9 @@ serv_socket.bind(addr)
 """
 
 def criaCabecalho(messageType, commandIdentifier, statusCode, opcao):
-    if statusCode:
-        statusCode = 1
-    else:
-        statusCode = 2
 
     if opcao != '':
+        print("statusCode: ", statusCode, "opcao: ", opcao)
         return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big') + opcao
 
     return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big')
@@ -59,16 +56,16 @@ def handler(ip, porta, socket):
         msg_str = socket.recv(1024)
 
         messageType = int.from_bytes(msg_str[:1], 'big')
-        print("messageType: ", messageType)
+        # print("messageType: ", messageType)
 
         commandIdentifier = int.from_bytes(msg_str[1:2], 'big')
-        print("commandIdentifier: ", commandIdentifier)
+        # print("commandIdentifier: ", commandIdentifier)
 
         tamanhoNome = int.from_bytes(msg_str[2:3], 'big')
-        print("tamanhoNome: ", tamanhoNome)
+        # print("tamanho nome: ", tamanhoNome)
 
         nomeArquivo = msg_str[3:tamanhoNome+3].decode('utf-8')
-        print('Mensagem recebida: ', nomeArquivo)
+        # print('nome arquivo: ', nomeArquivo)
 
         listaArquivos = bytearray()
         
@@ -84,42 +81,64 @@ def handler(ip, porta, socket):
                 arquivo += bytes
             
             # Salva o arquivo
-            with open('./Arquivos/' + nomeArquivo, 'w+b') as file:
+            with open('./ArquivosServer/' + nomeArquivo, 'w+b') as file:
                 file.write(arquivo)
 
             success = True
 
         elif commandIdentifier == 2:
             try:
-                os.remove('./Arquivos/' + nomeArquivo)
+                os.remove('./ArquivosServer/' + nomeArquivo)
                 success = True
             except:
                 pass
         
         elif commandIdentifier == 3:
-            arquivos = os.listdir(path='./Arquivos')
-            print("Arquivos: ", arquivos)
+            arquivos = os.listdir(path='./ArquivosServer')
+            # print("Arquivos: ", arquivos)
 
             qtdArquivos = len(arquivos)
             listaArquivos += qtdArquivos.to_bytes(1, 'big')
             for arquivo in arquivos:
                 nome = arquivo.encode('utf-8')
                 tamanhoNome = len(nome)
-                print("nome: ", nome)
-                print("tamanhoNome: ", tamanhoNome)
-                print("tamanhoNome.to_bytes(1, 'big'): ", tamanhoNome.to_bytes(1, 'big'))
+                # print("nome: ", nome)
+                # print("tamanhoNome: ", tamanhoNome)
+                # print("tamanhoNome.to_bytes(1, 'big'): ", tamanhoNome.to_bytes(1, 'big'))
                 listaArquivos += tamanhoNome.to_bytes(1, 'big') + nome
             
             success = True
 
+        elif commandIdentifier == 4:
+            arquivos = os.listdir(path='./ArquivosServer')
+            # print("Arquivos: ", arquivos)
+
+            if nomeArquivo in arquivos:
+                tamanhoArquivo = os.path.getsize('./ArquivosServer/' + nomeArquivo)
+                listaArquivos = b''
+                listaArquivos = tamanhoArquivo.to_bytes(4, 'big')
+                # print("tamanhoArquivo: ", tamanhoArquivo)
+                listaArquivos += msg_str[3:tamanhoNome+3]
+                success = True
+            else:
+                success = False
 
         if success:
+            # print("Sucesso")
             resposta = criaCabecalho(2, commandIdentifier, 1, listaArquivos)
         else:
+            # print("false")
             resposta = criaCabecalho(2, commandIdentifier, 2, listaArquivos)
 
-        print("Resposta: ", resposta)
+        # print("Resposta: ", resposta)
         socket.send(resposta)
+
+        if commandIdentifier == 4 and success:
+             with open('./ArquivosServer/' + nomeArquivo, 'rb') as file:
+                byte = file.read(1)
+                while byte != b'':
+                    socket.send(byte)
+                    byte = file.read(1)
 
 def main():
     vetorThreads = []
