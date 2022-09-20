@@ -13,8 +13,8 @@
     EXIT: Finaliza a conexão.
 
     Autores: Caio José Cintra, Guilherme Del Rio
-    Data de criação: 04/04/2022
-    Data de modificação: 05/04/2022
+    Data de criação: 10/09/2022
+    Data de modificação: 19/09/2022
 
 '''
 
@@ -42,22 +42,26 @@ serv_socket.bind(addr)
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 """
 
-def criaCabecalho(messageType, commandIdentifier, statusCode, opcao):
+def criaCabecalho(messageType, commandIdentifier, statusCode, opcao):   
+# Cria um cabeçalho como o esquematizado acima, ele recebe em seus parametros cada um dos campos dele
+
     if statusCode:
         statusCode = 1
     else:
         statusCode = 2
+    # status code (1-SUCCESS, 2-ERROR)
 
     if opcao != '':
         return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big') + opcao
 
     return messageType.to_bytes(1, 'big') + commandIdentifier.to_bytes(1, 'big') + statusCode.to_bytes(1, 'big')
 
-def handler(ip, porta, socket):
+def handler(ip, porta, socket):     # Função que executa as funções do servidor, ela recebe o ip a porta e o socket para executar
     while True:
         success = False
         msg_str = socket.recv(1024)
 
+        # String de mensagem é dividida para separar cada informação e imprime na tela cada uma delas
         messageType = int.from_bytes(msg_str[:1], 'big')
         print("messageType: ", messageType)
 
@@ -73,7 +77,7 @@ def handler(ip, porta, socket):
         listaArquivos = bytearray()
         
 
-        if commandIdentifier == 1:
+        if commandIdentifier == 1:      # Comando ADDFILE (1): adiciona um arquivo novo.
             print(msg_str[-4:])
             tamanhoArquivo = int.from_bytes(msg_str[-4:], 'big')
             print("tamanhoArquivo: ", tamanhoArquivo)
@@ -83,25 +87,29 @@ def handler(ip, porta, socket):
                 bytes = socket.recv(1)
                 arquivo += bytes
             
-            # Salva o arquivo
+            # Salva o arquivo na pasta padrão chamada 'Arquivos'
             with open('./Arquivos/' + nomeArquivo, 'w+b') as file:
                 file.write(arquivo)
 
             success = True
 
-        elif commandIdentifier == 2:
+        elif commandIdentifier == 2:    # Comando DELETE (2): remove um arquivo existente
             try:
                 os.remove('./Arquivos/' + nomeArquivo)
+                print("dasdasd: ")
                 success = True
             except:
                 pass
         
-        elif commandIdentifier == 3:
+        elif commandIdentifier == 3:    # Comando GETFILESLIST (3): retorna uma lista com o nome dos arquivos
             arquivos = os.listdir(path='./Arquivos')
             print("Arquivos: ", arquivos)
 
+            # Pega o número de arquivos na pasta
             qtdArquivos = len(arquivos)
             listaArquivos += qtdArquivos.to_bytes(1, 'big')
+
+            # Para cada arquivo é impresso o nome, o tamanho do nome e o tamanho do nome em bytes, além de formar uma lista com os arquivos encontrados
             for arquivo in arquivos:
                 nome = arquivo.encode('utf-8')
                 tamanhoNome = len(nome)
@@ -114,10 +122,13 @@ def handler(ip, porta, socket):
 
 
         if success:
+        # Em caso de sucesso cria o cabeçalho com SUCESS
             resposta = criaCabecalho(2, commandIdentifier, 1, listaArquivos)
         else:
+        # Caso contrário cria o cabeçalho com ERROR
             resposta = criaCabecalho(2, commandIdentifier, 2, listaArquivos)
 
+        # Resposta é impressa na tela e enviada por socket
         print("Resposta: ", resposta)
         socket.send(resposta)
 
