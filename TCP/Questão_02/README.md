@@ -1,7 +1,7 @@
     #   Como Executar
 
-    python3 client.py
     python3 server.py
+    python3 client.py
 
     Execute cada um destes comandos em uma aba diferente do terminal 
     
