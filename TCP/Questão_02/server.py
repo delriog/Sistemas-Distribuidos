@@ -21,8 +21,7 @@ import os
 
 import logging
 import logging.handlers
-import os
- 
+
 handler = logging.handlers.WatchedFileHandler(
     os.environ.get("LOGFILE", "serverLog.log"))
 formatter = logging.Formatter(logging.BASIC_FORMAT)

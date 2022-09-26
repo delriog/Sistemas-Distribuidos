@@ -5,6 +5,7 @@ import math
 
 def main():
 
+    msgFromClient       = "Hello UDP Server"
     serverAddressPort   = ("127.0.0.1", 6666)
     bufferSize          = 1024
 

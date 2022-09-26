@@ -1,48 +1,80 @@
-from fileinput import filename
 import socket
 import math
+import os
+import hashlib
+import logging
+import logging.handlers
+import datetime
 
 localIP     = "127.0.0.1"
 localPort   = 6666
 bufferSize  = 1024
 
+handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "serverLog.log"))
+formatter = logging.Formatter(logging.BASIC_FORMAT)
+handler.setFormatter(formatter)
+root = logging.getLogger()
+root.setLevel(os.environ.get("LOGLEVEL", "INFO"))
+root.addHandler(handler)
+
+
 def main():
 
-    # Create a datagram socket
-    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+	UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-    # Bind to address and ip
-    UDPServerSocket.bind((localIP, localPort))
-    
-    print("UDP server up and listening")
+	UDPServerSocket.bind((localIP, localPort))
+	
+	print("Servidor UDP iniciado na porta: ", localPort)
 
-    # Listen for incoming datagrams
-    while(True):
+	while(True):
 
-        msg, address = UDPServerSocket.recvfrom(bufferSize)
-        print(msg)
+		msg, address = UDPServerSocket.recvfrom(bufferSize)
 
-        tamanhoNomeArquivo = int.from_bytes(msg[0:1], 'big')
-        print("tamanho_nome_arquivo:", tamanhoNomeArquivo, end=' | ')
+		tamanhoNomeArquivo = int.from_bytes(msg[0:1], 'big')
 
-        nomeArquivo = msg[1:1+int(tamanhoNomeArquivo)].decode('utf-8')
-        print("nomeArquivo:", nomeArquivo, end=' | ')
+		nomeArquivo = msg[1:1+int(tamanhoNomeArquivo)].decode('utf-8')
 
-        tamanhoArquivo = int.from_bytes(msg[1+int(tamanhoNomeArquivo):], 'big')
-        print("tamanhoArquivo:", tamanhoArquivo)
+		tamanhoArquivo = int.from_bytes(msg[1+int(tamanhoNomeArquivo):], 'big')
 
-        pacotes = tamanhoArquivo/1024
-        pacote = 0
+		pacotes = tamanhoArquivo/bufferSize
+		pacote = 0
 
-        file2 = open('./Arquivos/' + nomeArquivo, 'wb+')
+		file2 = open('./Arquivos/' + nomeArquivo, 'wb+')
+		
+		while pacote < int(math.ceil(pacotes)):
+			if pacote == 0:
+				hora = datetime.datetime.now()
+				logging.info('%s: Inicio do recebimento do arquivo: %s com tamanho: %s', hora, nomeArquivo, tamanhoArquivo)
 
-        while pacote < int(math.ceil(pacotes)):
-                print("pacote:", pacote)            
-                data, addr = UDPServerSocket.recvfrom(bufferSize)
-                print("\n\npacote:", pacote, "data:", data, "\n\n")
-                file2.write(data)
-                pacote += 1
-        file2.close()
+			data, addr = UDPServerSocket.recvfrom(bufferSize)
+			file2.write(data)
+			pacote += 1
 
+		hora = datetime.datetime.now()
+		logging.info('%s: Final do recebimento do arquivo: %s com tamanho: %s', hora, nomeArquivo, tamanhoArquivo)
+
+		file2.seek(0) # Volta para o começo do arquivo
+		checksum = hashlib.sha1(file2.read()).hexdigest()
+		print("checksum: ", checksum)
+
+		
+		file2.close()
+
+		checksumClient, addr = UDPServerSocket.recvfrom(bufferSize)
+		print("checksumClient: ", checksumClient.decode('utf-8'))
+
+		if checksumClient.decode('utf-8') == checksum:
+			hora = datetime.datetime.now()
+			logging.info('%s: Arquivo recebido com sucesso: %s com tamanho: %s', hora, nomeArquivo, tamanhoArquivo)
+			resposta = "Arquivo recebido com sucesso"
+			UDPServerSocket.sendto(resposta.encode('utf-8'), address)
+
+		else:
+			hora = datetime.datetime.now()
+			logging.info('%s: Arquivo recebido com falha: %s com tamanho: %s', hora, nomeArquivo, tamanhoArquivo)
+			resposta = "Arquivo recebido com falha"
+			UDPServerSocket.sendto(resposta.encode('utf-8'), address)
+			
+			os.remove('./Arquivos/' + nomeArquivo) # Deleta o arquivo
 
 main()
