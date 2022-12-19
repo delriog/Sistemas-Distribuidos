@@ -17,4 +17,3 @@ Após a execução dos arquivos, o cliente exibirá dentre os 100 tweets coletad
 
 'luffy'
 Figured out how Luffy gonna beat Blackbeard again, I’m a genius
-------------------------------------------------------
